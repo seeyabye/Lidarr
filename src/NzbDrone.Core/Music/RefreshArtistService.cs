@@ -16,6 +16,7 @@ using System.Linq;
 using NzbDrone.Core.ImportLists.Exclusions;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Core.History;
+using NzbDrone.Core.RootFolders;
 
 namespace NzbDrone.Core.Music
 {
@@ -28,6 +29,7 @@ namespace NzbDrone.Core.Music
         private readonly IEventAggregator _eventAggregator;
         private readonly IMediaFileService _mediaFileService;
         private readonly IHistoryService _historyService;
+        private readonly IRootFolderService _rootFolderService;
         private readonly IDiskScanService _diskScanService;
         private readonly ICheckIfArtistShouldBeRefreshed _checkIfArtistShouldBeRefreshed;
         private readonly IConfigService _configService;
@@ -43,6 +45,7 @@ namespace NzbDrone.Core.Music
                                     IMediaFileService mediaFileService,
                                     IHistoryService historyService,
                                     IDiskScanService diskScanService,
+                                    IRootFolderService rootFolderService,
                                     ICheckIfArtistShouldBeRefreshed checkIfArtistShouldBeRefreshed,
                                     IConfigService configService,
                                     IImportListExclusionService importListExclusionService,
@@ -57,6 +60,7 @@ namespace NzbDrone.Core.Music
             _mediaFileService = mediaFileService;
             _historyService = historyService;
             _diskScanService = diskScanService;
+            _rootFolderService = rootFolderService;
             _checkIfArtistShouldBeRefreshed = checkIfArtistShouldBeRefreshed;
             _configService = configService;
             _importListExclusionService = importListExclusionService;
@@ -258,26 +262,26 @@ namespace NzbDrone.Core.Music
             _eventAggregator.PublishEvent(new AlbumInfoRefreshedEvent(entity, newChildren, updateChildren));
         }
 
-        private void RescanArtist(Artist artist, bool isNew, CommandTrigger trigger, bool infoUpdated)
+        private void Rescan(bool isNew, CommandTrigger trigger, bool infoUpdated)
         {
             var rescanAfterRefresh = _configService.RescanAfterRefresh;
             var shouldRescan = true;
 
             if (isNew)
             {
-                _logger.Trace("Forcing rescan of {0}. Reason: New artist", artist);
+                _logger.Trace("Forcing rescan. Reason: New artist added");
                 shouldRescan = true;
             }
 
             else if (rescanAfterRefresh == RescanAfterRefreshType.Never)
             {
-                _logger.Trace("Skipping rescan of {0}. Reason: never recan after refresh", artist);
+                _logger.Trace("Skipping rescan. Reason: never rescan after refresh");
                 shouldRescan = false;
             }
 
             else if (rescanAfterRefresh == RescanAfterRefreshType.AfterManual && trigger != CommandTrigger.Manual)
             {
-                _logger.Trace("Skipping rescan of {0}. Reason: not after automatic scans", artist);
+                _logger.Trace("Skipping rescan. Reason: not after automatic refreshes");
                 shouldRescan = false;
             }
 
@@ -291,11 +295,12 @@ namespace NzbDrone.Core.Music
                 // If some metadata has been updated then rescan unmatched files.
                 // Otherwise only scan files that haven't been seen before.
                 var filter = infoUpdated ? FilterFilesType.Matched : FilterFilesType.Known;
-                _diskScanService.Scan(artist, filter);
+                var folders = _rootFolderService.All().Select(x => x.Path).ToList();
+                _diskScanService.Scan(folders, filter);
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Couldn't rescan artist {0}", artist);
+                _logger.Error(e, "Couldn't rescan");
             }
         }
 
@@ -303,20 +308,19 @@ namespace NzbDrone.Core.Music
         {
             var trigger = message.Trigger;
             var isNew = message.IsNewArtist;
+            var updated = false;
 
             if (message.ArtistId.HasValue)
             {
                 var artist = _artistService.GetArtist(message.ArtistId.Value);
-                bool updated = false;
                 try
                 {
                     updated = RefreshEntityInfo(artist, null, true, false);
-                    RescanArtist(artist, isNew, trigger, updated);
+
                 }
                 catch (Exception e)
                 {
                     _logger.Error(e, "Couldn't refresh info for {0}", artist);
-                    RescanArtist(artist, isNew, trigger, updated);
                     throw;
                 }
             }
@@ -330,24 +334,22 @@ namespace NzbDrone.Core.Music
 
                     if (manualTrigger || _checkIfArtistShouldBeRefreshed.ShouldRefresh(artist))
                     {
-                        bool updated = false;
                         try
                         {
-                            updated = RefreshEntityInfo(artist, null, manualTrigger, false);
+                            updated |= RefreshEntityInfo(artist, null, manualTrigger, false);
                         }
                         catch (Exception e)
                         {
                             _logger.Error(e, "Couldn't refresh info for {0}", artist);
                         }
-
-                        RescanArtist(artist, false, trigger, updated);
                     }
                     else
                     {
                         _logger.Info("Skipping refresh of artist: {0}", artist.Name);
-                        RescanArtist(artist, false, trigger, false);
                     }
                 }
+
+                Rescan(isNew, trigger, updated);
             }
         }
     }

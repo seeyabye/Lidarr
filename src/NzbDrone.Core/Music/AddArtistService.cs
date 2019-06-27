@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Music
 {
     public interface IAddArtistService
     {
-        Artist AddArtist(Artist newArtist);
+        Artist AddArtist(Artist newArtist, bool doRefresh = true);
         List<Artist> AddArtists(List<Artist> newArtists);
     }
 
@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Music
             _logger = logger;
         }
 
-        public Artist AddArtist(Artist newArtist)
+        public Artist AddArtist(Artist newArtist, bool doRefresh = true)
         {
             Ensure.That(newArtist, () => newArtist).IsNotNull();
 
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Music
             newArtist.ArtistMetadataId = newArtist.Metadata.Value.Id;
 
             // add the artist itself
-            _artistService.AddArtist(newArtist);
+            _artistService.AddArtist(newArtist, doRefresh);
 
             return newArtist;
         }
