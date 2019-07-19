@@ -348,9 +348,9 @@ namespace NzbDrone.Core.Music
                         _logger.Info("Skipping refresh of artist: {0}", artist.Name);
                     }
                 }
-
-                Rescan(isNew, trigger, updated);
             }
+
+            Rescan(isNew, trigger, updated);
         }
     }
 }
