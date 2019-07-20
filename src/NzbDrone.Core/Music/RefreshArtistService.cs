@@ -17,6 +17,7 @@ using NzbDrone.Core.ImportLists.Exclusions;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Core.History;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.MediaFiles.Commands;
 
 namespace NzbDrone.Core.Music
 {
@@ -27,6 +28,7 @@ namespace NzbDrone.Core.Music
         private readonly IAlbumService _albumService;
         private readonly IRefreshAlbumService _refreshAlbumService;
         private readonly IEventAggregator _eventAggregator;
+        private readonly IManageCommandQueue _commandQueueManager;
         private readonly IMediaFileService _mediaFileService;
         private readonly IHistoryService _historyService;
         private readonly IRootFolderService _rootFolderService;
@@ -42,6 +44,7 @@ namespace NzbDrone.Core.Music
                                     IAlbumService albumService,
                                     IRefreshAlbumService refreshAlbumService,
                                     IEventAggregator eventAggregator,
+                                    IManageCommandQueue commandQueueManager,
                                     IMediaFileService mediaFileService,
                                     IHistoryService historyService,
                                     IDiskScanService diskScanService,
@@ -57,6 +60,7 @@ namespace NzbDrone.Core.Music
             _albumService = albumService;
             _refreshAlbumService = refreshAlbumService;
             _eventAggregator = eventAggregator;
+            _commandQueueManager = commandQueueManager;
             _mediaFileService = mediaFileService;
             _historyService = historyService;
             _diskScanService = diskScanService;
@@ -296,7 +300,8 @@ namespace NzbDrone.Core.Music
                 // Otherwise only scan files that haven't been seen before.
                 var filter = infoUpdated ? FilterFilesType.Matched : FilterFilesType.Known;
                 var folders = _rootFolderService.All().Select(x => x.Path).ToList();
-                _diskScanService.Scan(folders, filter);
+
+                _commandQueueManager.Push(new RescanFoldersCommand(folders, filter, null));
             }
             catch (Exception e)
             {

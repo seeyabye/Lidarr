@@ -293,10 +293,9 @@ namespace NzbDrone.Core.MediaFiles
 
         public void Execute(RescanFoldersCommand message)
         {
-            var filter = message.ImportArtistDefaults != null ? FilterFilesType.Matched : FilterFilesType.Known;
             _logger.Debug(message.ImportArtistDefaults.ToJson());
 
-            Scan(message.Folders, filter, message.ImportArtistDefaults);
+            Scan(message.Folders, message.Filter, message.ImportArtistDefaults);
         }
     }
 }
