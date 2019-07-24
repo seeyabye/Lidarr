@@ -82,7 +82,8 @@ namespace NzbDrone.Core.MediaFiles
 
         public List<TrackFile> GetFileWithPath(List<string> paths)
         {
-            return All().Join(paths, x => x.Path, x => x, (file, path) => file, PathEqualityComparer.Instance).ToList();
+            // Use Query not all so that we get the joins defined above
+            return Query.ToList().Join(paths, x => x.Path, x => x, (file, path) => file, PathEqualityComparer.Instance).ToList();
         }
     }
 }
