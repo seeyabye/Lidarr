@@ -818,6 +818,7 @@
     <Compile Include="MetadataSource\IProvideArtistInfo.cs" />
     <Compile Include="MetadataSource\ISearchForNewAlbum.cs" />
     <Compile Include="MetadataSource\ISearchForNewArtist.cs" />
+    <Compile Include="MetadataSource\ISearchForNewEntity.cs" />
     <Compile Include="MetadataSource\IProvideAlbumInfo.cs" />
     <Compile Include="MetadataSource\SkyHook\Resource\MediumResource.cs" />
     <Compile Include="MetadataSource\SkyHook\Resource\ArtistResource.cs" />
@@ -827,6 +828,7 @@
     <Compile Include="MetadataSource\SkyHook\Resource\ReleaseResource.cs" />
     <Compile Include="MetadataSource\SkyHook\Resource\AlbumResource.cs" />
     <Compile Include="MetadataSource\SkyHook\Resource\TrackResource.cs" />
+    <Compile Include="MetadataSource\SkyHook\Resource\EntityResource.cs" />
     <Compile Include="MetadataSource\SkyHook\SkyHookProxy.cs" />
     <Compile Include="MetadataSource\SearchArtistComparer.cs" />
     <Compile Include="MetadataSource\SkyHook\SkyHookException.cs" />
@@ -875,6 +877,8 @@
     <Compile Include="Music\Member.cs" />
     <Compile Include="Music\AddArtistOptions.cs" />
     <Compile Include="Music\AddArtistService.cs" />
+    <Compile Include="Music\AddAlbumOptions.cs" />
+    <Compile Include="Music\AddAlbumService.cs" />
     <Compile Include="Music\AddArtistValidator.cs" />
     <Compile Include="Music\Album.cs" />
     <Compile Include="Music\Artist.cs" />
