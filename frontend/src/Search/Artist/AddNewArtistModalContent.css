@@ -17,6 +17,18 @@
   flex-grow: 1;
 }
 
+.name {
+  font-weight: 300;
+  font-size: 36px;
+}
+
+.disambiguation {
+  margin-bottom: 20px;
+  color: $disabledColor;
+  font-weight: 300;
+  font-size: 20px;
+}
+
 .overview {
   margin-bottom: 30px;
   max-height: 230px;

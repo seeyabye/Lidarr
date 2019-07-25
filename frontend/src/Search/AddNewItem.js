@@ -8,10 +8,11 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import TextInput from 'Components/Form/TextInput';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBodyConnector from 'Components/Page/PageContentBodyConnector';
-import AddNewArtistSearchResultConnector from './AddNewArtistSearchResultConnector';
-import styles from './AddNewArtist.css';
+import AddNewArtistSearchResultConnector from './Artist/AddNewArtistSearchResultConnector';
+import AddNewAlbumSearchResultConnector from './Album/AddNewAlbumSearchResultConnector';
+import styles from './AddNewItem.css';
 
-class AddNewArtist extends Component {
+class AddNewItem extends Component {
 
   //
   // Lifecycle
@@ -29,7 +30,7 @@ class AddNewArtist extends Component {
     const term = this.state.term;
 
     if (term) {
-      this.props.onArtistLookupChange(term);
+      this.props.onSearchChange(term);
     }
   }
 
@@ -44,7 +45,7 @@ class AddNewArtist extends Component {
         term,
         isFetching: true
       });
-      this.props.onArtistLookupChange(term);
+      this.props.onSearchChange(term);
     } else if (isFetching !== prevProps.isFetching) {
       this.setState({
         isFetching
@@ -60,16 +61,16 @@ class AddNewArtist extends Component {
 
     this.setState({ term: value, isFetching: hasValue }, () => {
       if (hasValue) {
-        this.props.onArtistLookupChange(value);
+        this.props.onSearchChange(value);
       } else {
-        this.props.onClearArtistLookup();
+        this.props.onClearSearch();
       }
     });
   }
 
-  onClearArtistLookupPress = () => {
+  onClearSearchPress = () => {
     this.setState({ term: '' });
-    this.props.onClearArtistLookup();
+    this.props.onClearSearch();
   }
 
   //
@@ -85,7 +86,7 @@ class AddNewArtist extends Component {
     const isFetching = this.state.isFetching;
 
     return (
-      <PageContent title="Add New Artist">
+      <PageContent title="Add New Item">
         <PageContentBodyConnector>
           <div className={styles.searchContainer}>
             <div className={styles.searchIconContainer}>
@@ -97,7 +98,7 @@ class AddNewArtist extends Component {
 
             <TextInput
               className={styles.searchInput}
-              name="artistLookup"
+              name="searchBox"
               value={term}
               placeholder="eg. Breaking Benjamin, lidarr:854a1807-025b-42a8-ba8c-2a39717f1d25"
               autoFocus={true}
@@ -106,7 +107,7 @@ class AddNewArtist extends Component {
 
             <Button
               className={styles.clearLookupButton}
-              onPress={this.onClearArtistLookupPress}
+              onPress={this.onClearSearchPress}
             >
               <Icon
                 name={icons.REMOVE}
@@ -130,12 +131,26 @@ class AddNewArtist extends Component {
               <div className={styles.searchResults}>
                 {
                   items.map((item) => {
-                    return (
-                      <AddNewArtistSearchResultConnector
-                        key={item.foreignArtistId}
-                        {...item}
-                      />
-                    );
+                    if (item.artist) {
+                      const artist = item.artist;
+                      return (
+                        <AddNewArtistSearchResultConnector
+                          key={item.id}
+                          {...artist}
+                        />
+                      );
+                    } else if (item.album) {
+                      const album = item.album;
+                      return (
+                        <AddNewAlbumSearchResultConnector
+                          key={item.id}
+                          isExistingAlbum={'id' in album && album.id !== 0}
+                          isExistingArtist={'id' in album.artist && album.artist.id !== 0}
+                          {...album}
+                        />
+                      );
+                    }
+                    return null;
                   })
                 }
               </div>
@@ -145,20 +160,15 @@ class AddNewArtist extends Component {
             !isFetching && !error && !items.length && !!term &&
               <div className={styles.message}>
                 <div className={styles.noResults}>Couldn't find any results for '{term}'</div>
-                <div>You can also search using MusicBrainz ID of an artist. eg. lidarr:cc197bad-dc9c-440d-a5b5-d52ba2e14234</div>
-                <div>
-                  <Link to="https://github.com/Lidarr/Lidarr/wiki/FAQ#why-cant-i-add-a-new-artist-when-i-know-the-musicbrainz-id">
-                    Why can't I find my artist?
-                  </Link>
-                </div>
+                <div>You can also search using the <Link to="https://musicbrainz.org/search">MusicBrainz ID</Link> of an artist e.g. lidarr:cc197bad-dc9c-440d-a5b5-d52ba2e14234</div>
               </div>
           }
 
           {
             !term &&
               <div className={styles.message}>
-                <div className={styles.helpText}>It's easy to add a new artist, just start typing the name the artist you want to add.</div>
-                <div>You can also search using MusicBrainz ID of an artist. eg. lidarr:cc197bad-dc9c-440d-a5b5-d52ba2e14234</div>
+                <div className={styles.helpText}>It's easy to add a new artist, just start typing the name of the artist you want to add.</div>
+                <div>You can also search using the <Link to="https://musicbrainz.org/search">MusicBrainz ID</Link> of an artist e.g. lidarr:cc197bad-dc9c-440d-a5b5-d52ba2e14234</div>
               </div>
           }
 
@@ -169,15 +179,15 @@ class AddNewArtist extends Component {
   }
 }
 
-AddNewArtist.propTypes = {
+AddNewItem.propTypes = {
   term: PropTypes.string,
   isFetching: PropTypes.bool.isRequired,
   error: PropTypes.object,
   isAdding: PropTypes.bool.isRequired,
   addError: PropTypes.object,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
-  onArtistLookupChange: PropTypes.func.isRequired,
-  onClearArtistLookup: PropTypes.func.isRequired
+  onSearchChange: PropTypes.func.isRequired,
+  onClearSearch: PropTypes.func.isRequired
 };
 
-export default AddNewArtist;
+export default AddNewItem;

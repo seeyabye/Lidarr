@@ -6,15 +6,15 @@ import getSectionState from 'Utilities/State/getSectionState';
 import updateSectionState from 'Utilities/State/updateSectionState';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import getNewArtist from 'Utilities/Artist/getNewArtist';
+import getNewAlbum from 'Utilities/Album/getNewAlbum';
 import { createThunk, handleThunks } from 'Store/thunks';
-import createSetSettingValueReducer from './Creators/Reducers/createSetSettingValueReducer';
 import createHandleActions from './Creators/createHandleActions';
 import { set, update, updateItem } from './baseActions';
 
 //
 // Variables
 
-export const section = 'addArtist';
+export const section = 'search';
 let abortCurrentRequest = null;
 
 //
@@ -41,39 +41,33 @@ export const defaultState = {
 };
 
 export const persistState = [
-  'addArtist.defaults'
+  'search.defaults'
 ];
 
 //
 // Actions Types
 
-export const LOOKUP_ARTIST = 'addArtist/lookupArtist';
-export const ADD_ARTIST = 'addArtist/addArtist';
-export const SET_ADD_ARTIST_VALUE = 'addArtist/setAddArtistValue';
-export const CLEAR_ADD_ARTIST = 'addArtist/clearAddArtist';
-export const SET_ADD_ARTIST_DEFAULT = 'addArtist/setAddArtistDefault';
+export const GET_SEARCH_RESULTS = 'search/getSearchResults';
+export const ADD_ARTIST = 'search/addArtist';
+export const ADD_ALBUM = 'search/addAlbum';
+export const CLEAR_SEARCH_RESULTS = 'search/clearSearchResults';
+export const SET_ADD_DEFAULT = 'search/setAddDefault';
 
 //
 // Action Creators
 
-export const lookupArtist = createThunk(LOOKUP_ARTIST);
+export const getSearchResults = createThunk(GET_SEARCH_RESULTS);
 export const addArtist = createThunk(ADD_ARTIST);
-export const clearAddArtist = createAction(CLEAR_ADD_ARTIST);
-export const setAddArtistDefault = createAction(SET_ADD_ARTIST_DEFAULT);
-
-export const setAddArtistValue = createAction(SET_ADD_ARTIST_VALUE, (payload) => {
-  return {
-    section,
-    ...payload
-  };
-});
+export const addAlbum = createThunk(ADD_ALBUM);
+export const clearSearchResults = createAction(CLEAR_SEARCH_RESULTS);
+export const setAddDefault = createAction(SET_ADD_DEFAULT);
 
 //
 // Action Handlers
 
 export const actionHandlers = handleThunks({
 
-  [LOOKUP_ARTIST]: function(getState, payload, dispatch) {
+  [GET_SEARCH_RESULTS]: function(getState, payload, dispatch) {
     dispatch(set({ section, isFetching: true }));
 
     if (abortCurrentRequest) {
@@ -81,7 +75,7 @@ export const actionHandlers = handleThunks({
     }
 
     const { request, abortRequest } = createAjaxRequest({
-      url: '/artist/lookup',
+      url: '/search',
       data: {
         term: payload.term
       }
@@ -116,8 +110,9 @@ export const actionHandlers = handleThunks({
     dispatch(set({ section, isAdding: true }));
 
     const foreignArtistId = payload.foreignArtistId;
-    const items = getState().addArtist.items;
-    const newArtist = getNewArtist(_.cloneDeep(_.find(items, { foreignArtistId })), payload);
+    const items = getState().search.items;
+    const itemToAdd = _.find(items, { foreignId: foreignArtistId });
+    const newArtist = getNewArtist(_.cloneDeep(itemToAdd.artist), payload);
 
     const promise = createAjaxRequest({
       url: '/artist',
@@ -147,6 +142,50 @@ export const actionHandlers = handleThunks({
         addError: xhr
       }));
     });
+  },
+
+  [ADD_ALBUM]: function(getState, payload, dispatch) {
+    dispatch(set({ section, isAdding: true }));
+
+    const foreignAlbumId = payload.foreignAlbumId;
+    const items = getState().search.items;
+    const itemToAdd = _.find(items, { foreignId: foreignAlbumId });
+    const newAlbum = getNewAlbum(_.cloneDeep(itemToAdd.album), payload);
+
+    const promise = createAjaxRequest({
+      url: '/album',
+      method: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(newAlbum)
+    }).request;
+
+    promise.done((data) => {
+      console.log(data);
+      data.releases = itemToAdd.album.releases;
+      itemToAdd.album = data;
+      dispatch(batchActions([
+        updateItem({
+          section,
+          ...itemToAdd
+        }),
+
+        set({
+          section,
+          isAdding: false,
+          isAdded: true,
+          addError: null
+        })
+      ]));
+    });
+
+    promise.fail((xhr) => {
+      dispatch(set({
+        section,
+        isAdding: false,
+        isAdded: false,
+        addError: xhr
+      }));
+    });
   }
 });
 
@@ -155,9 +194,7 @@ export const actionHandlers = handleThunks({
 
 export const reducers = createHandleActions({
 
-  [SET_ADD_ARTIST_VALUE]: createSetSettingValueReducer(section),
-
-  [SET_ADD_ARTIST_DEFAULT]: function(state, { payload }) {
+  [SET_ADD_DEFAULT]: function(state, { payload }) {
     const newState = getSectionState(state, section);
 
     newState.defaults = {
@@ -168,7 +205,7 @@ export const reducers = createHandleActions({
     return updateSectionState(state, section, newState);
   },
 
-  [CLEAR_ADD_ARTIST]: function(state) {
+  [CLEAR_SEARCH_RESULTS]: function(state) {
     const {
       defaults,
       ...otherDefaultState

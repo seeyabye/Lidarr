@@ -175,6 +175,8 @@
     <Compile Include="Artist\ArtistLookupModule.cs" />
     <Compile Include="Artist\ArtistModule.cs" />
     <Compile Include="Artist\ArtistResource.cs" />
+    <Compile Include="Search\SearchResource.cs" />
+    <Compile Include="Search\SearchModule.cs" />
     <Compile Include="System\Backup\BackupModule.cs" />
     <Compile Include="System\Backup\BackupResource.cs" />
     <Compile Include="System\Tasks\TaskModule.cs" />

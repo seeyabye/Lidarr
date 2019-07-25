@@ -2,23 +2,24 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { setAddArtistDefault, addArtist } from 'Store/Actions/addArtistActions';
+import { setAddDefault, addAlbum } from 'Store/Actions/searchActions';
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
 import selectSettings from 'Store/Selectors/selectSettings';
-import AddNewArtistModalContent from './AddNewArtistModalContent';
+import AddNewAlbumModalContent from './AddNewAlbumModalContent';
 
 function createMapStateToProps() {
   return createSelector(
-    (state) => state.addArtist,
+    (state, { isExistingArtist }) => isExistingArtist,
+    (state) => state.search,
     (state) => state.settings.languageProfiles,
     (state) => state.settings.metadataProfiles,
     createDimensionsSelector(),
-    (addArtistState, languageProfiles, metadataProfiles, dimensions) => {
+    (isExistingArtist, searchState, languageProfiles, metadataProfiles, dimensions) => {
       const {
         isAdding,
         addError,
         defaults
-      } = addArtistState;
+      } = searchState;
 
       const {
         settings,
@@ -29,8 +30,8 @@ function createMapStateToProps() {
       return {
         isAdding,
         addError,
-        showLanguageProfile: languageProfiles.items.length > 1,
-        showMetadataProfile: metadataProfiles.items.length > 1,
+        showLanguageProfile: !isExistingArtist && languageProfiles.items.length > 1,
+        showMetadataProfile: !isExistingArtist && metadataProfiles.items.length > 1,
         isSmallScreen: dimensions.isSmallScreen,
         validationErrors,
         validationWarnings,
@@ -41,22 +42,22 @@ function createMapStateToProps() {
 }
 
 const mapDispatchToProps = {
-  setAddArtistDefault,
-  addArtist
+  setAddDefault,
+  addAlbum
 };
 
-class AddNewArtistModalContentConnector extends Component {
+class AddNewAlbumModalContentConnector extends Component {
 
   //
   // Listeners
 
   onInputChange = ({ name, value }) => {
-    this.props.setAddArtistDefault({ [name]: value });
+    this.props.setAddDefault({ [name]: value });
   }
 
-  onAddArtistPress = (searchForMissingAlbums) => {
+  onAddAlbumPress = (searchForNewAlbum) => {
     const {
-      foreignArtistId,
+      foreignAlbumId,
       rootFolderPath,
       monitor,
       qualityProfileId,
@@ -66,8 +67,8 @@ class AddNewArtistModalContentConnector extends Component {
       tags
     } = this.props;
 
-    this.props.addArtist({
-      foreignArtistId,
+    this.props.addAlbum({
+      foreignAlbumId,
       rootFolderPath: rootFolderPath.value,
       monitor: monitor.value,
       qualityProfileId: qualityProfileId.value,
@@ -75,7 +76,7 @@ class AddNewArtistModalContentConnector extends Component {
       metadataProfileId: metadataProfileId.value,
       albumFolder: albumFolder.value,
       tags: tags.value,
-      searchForMissingAlbums
+      searchForNewAlbum
     });
   }
 
@@ -84,17 +85,18 @@ class AddNewArtistModalContentConnector extends Component {
 
   render() {
     return (
-      <AddNewArtistModalContent
+      <AddNewAlbumModalContent
         {...this.props}
         onInputChange={this.onInputChange}
-        onAddArtistPress={this.onAddArtistPress}
+        onAddAlbumPress={this.onAddAlbumPress}
       />
     );
   }
 }
 
-AddNewArtistModalContentConnector.propTypes = {
-  foreignArtistId: PropTypes.string.isRequired,
+AddNewAlbumModalContentConnector.propTypes = {
+  isExistingArtist: PropTypes.bool.isRequired,
+  foreignAlbumId: PropTypes.string.isRequired,
   rootFolderPath: PropTypes.object,
   monitor: PropTypes.object.isRequired,
   qualityProfileId: PropTypes.object,
@@ -103,8 +105,8 @@ AddNewArtistModalContentConnector.propTypes = {
   albumFolder: PropTypes.object.isRequired,
   tags: PropTypes.object.isRequired,
   onModalClose: PropTypes.func.isRequired,
-  setAddArtistDefault: PropTypes.func.isRequired,
-  addArtist: PropTypes.func.isRequired
+  setAddDefault: PropTypes.func.isRequired,
+  addAlbum: PropTypes.func.isRequired
 };
 
-export default connect(createMapStateToProps, mapDispatchToProps)(AddNewArtistModalContentConnector);
+export default connect(createMapStateToProps, mapDispatchToProps)(AddNewAlbumModalContentConnector);
