@@ -70,7 +70,7 @@ namespace NzbDrone.Core.MediaFiles
         
         public List<TrackFile> GetFilesWithBasePath(string path)
         {
-            return Query
+            return DataMapper.Query<TrackFile>()
                 .Where(x => x.Path.StartsWith(path))
                 .ToList();
         }
@@ -82,8 +82,12 @@ namespace NzbDrone.Core.MediaFiles
 
         public List<TrackFile> GetFileWithPath(List<string> paths)
         {
-            // Use Query not all so that we get the joins defined above
-            return Query.ToList().Join(paths, x => x.Path, x => x, (file, path) => file, PathEqualityComparer.Instance).ToList();
+            // use more limited join for speed
+            var all = DataMapper.Query<TrackFile>()
+                .Join<TrackFile, Track>(JoinType.Left, t => t.Tracks, (t, x) => t.Id == x.TrackFileId)
+                .ToList();
+            var joined = all.Join(paths, x => x.Path, x => x, (file, path) => file, PathEqualityComparer.Instance).ToList();
+            return joined;
         }
     }
 }
