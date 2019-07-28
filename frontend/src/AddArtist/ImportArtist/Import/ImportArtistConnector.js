@@ -16,14 +16,14 @@ function createMapStateToProps() {
   return createSelector(
     (state, { match }) => match,
     (state) => state.rootFolders,
-    (state) => state.addArtist,
+    (state) => state.search,
     (state) => state.importArtist,
     (state) => state.settings.languageProfiles,
     (state) => state.settings.metadataProfiles,
     (
       match,
       rootFolders,
-      addArtist,
+      search,
       importArtistState,
       languageProfiles,
       metadataProfiles
@@ -41,7 +41,7 @@ function createMapStateToProps() {
         isAdding,
         addError,
         defaults
-      } = addArtist;
+      } = search;
 
       const {
         settings,
