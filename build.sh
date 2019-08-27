@@ -1,12 +1,14 @@
 #! /bin/bash
 msBuildVersion='15.0'
 outputFolder='./_output'
+outputFolderWindows='./_output_windows'
 outputFolderLinux='./_output_linux'
 outputFolderMacOS='./_output_macos'
 outputFolderMacOSApp='./_output_macos_app'
 testPackageFolder='./_tests/'
 sourceFolder='./src'
 slnFile=$sourceFolder/Lidarr.sln
+consoleApp=$sourceFolder
 updateFolder=$outputFolder/Lidarr.Update
 updateFolderMono=$outputFolderLinux/Lidarr.Update
 
@@ -75,18 +77,11 @@ CleanFolder()
     find $path -depth -empty -type d -exec rm -r "{}" \;
 }
 
-BuildWithMSBuild()
+BuildWithDotnet()
 {
     CheckExitCode dotnet clean $slnFile -c Debug
     CheckExitCode dotnet clean $slnFile -c Release
-    CheckExitCode dotnet publish $slnFile -c Release -r win-x64
-}
-
-BuildWithXbuild()
-{
-    CheckExitCode dotnet clean $slnFile -c Debug
-    CheckExitCode dotnet clean $slnFile -c Release
-    CheckExitCode dotnet publish $slnFile -c Release -r linux-x64
+    CheckExitCode dotnet build -c Release $slnFile
 }
 
 LintUI()
@@ -111,11 +106,7 @@ Build()
     rm -rf $outputFolder
     rm -rf $testPackageFolder
 
-    if [ $runtime = "dotnet" ] ; then
-        BuildWithMSBuild
-    else
-        BuildWithXbuild
-    fi
+    BuildWithDotnet
 
     CleanFolder $outputFolder false
 
@@ -140,88 +131,6 @@ RunGulp()
     ProgressStart 'Running gulp'
     CheckExitCode yarn run build --production
     ProgressEnd 'Running gulp'
-}
-
-PackageMono()
-{
-    ProgressStart 'Creating Mono Package'
-
-    rm -rf $outputFolderLinux
-
-    echo "Copying Binaries"
-    cp -r $outputFolder $outputFolderLinux
-
-    echo "Removing Service helpers"
-    rm -f $outputFolderLinux/ServiceUninstall.*
-    rm -f $outputFolderLinux/ServiceInstall.*
-
-    echo "Removing native windows binaries Sqlite, fpcalc"
-    rm -f $outputFolderLinux/sqlite3.*
-    rm -f $outputFolderLinux/fpcalc*
-
-    echo "Adding CurlSharp.dll.config (for dllmap)"
-    cp $sourceFolder/NzbDrone.Common/CurlSharp.dll.config $outputFolderLinux
-
-    echo "Renaming Lidarr.Console.exe to Lidarr.exe"
-    rm $outputFolderLinux/Lidarr.exe*
-    for file in $outputFolderLinux/Lidarr.Console.exe*; do
-        mv "$file" "${file//.Console/}"
-    done
-
-    echo "Removing Lidarr.Windows"
-    rm $outputFolderLinux/Lidarr.Windows.*
-
-    echo "Adding Lidarr.Mono to UpdatePackage"
-    cp $outputFolderLinux/Lidarr.Mono.* $updateFolderMono
-
-    ProgressEnd 'Creating Mono Package'
-}
-
-PackageMacOS()
-{
-    ProgressStart 'Creating MacOS Package'
-
-    rm -rf $outputFolderMacOS
-    mkdir $outputFolderMacOS
-
-    echo "Adding Startup script"
-    cp ./macOS/Lidarr $outputFolderMacOS
-    dos2unix $outputFolderMacOS/Lidarr
-
-    echo "Copying Binaries"
-    cp -r $outputFolderLinux/* $outputFolderMacOS
-    cp $outputFolder/fpcalc $outputFolderMacOS
-
-    echo "Adding sqlite dylibs"
-    cp $sourceFolder/Libraries/Sqlite/*.dylib $outputFolderMacOS
-
-    ProgressEnd 'Creating MacOS Package'
-}
-
-PackageMacOSApp()
-{
-    ProgressStart 'Creating macOS App Package'
-
-    rm -rf $outputFolderMacOSApp
-    mkdir $outputFolderMacOSApp
-    cp -r ./macOS/Lidarr.app $outputFolderMacOSApp
-    mkdir -p $outputFolderMacOSApp/Lidarr.app/Contents/MacOS
-
-    echo "Adding Startup script"
-    cp ./macOS/Lidarr $outputFolderMacOSApp/Lidarr.app/Contents/MacOS
-    dos2unix $outputFolderMacOSApp/Lidarr.app/Contents/MacOS/Lidarr
-
-    echo "Copying Binaries"
-    cp -r $outputFolderLinux/* $outputFolderMacOSApp/Lidarr.app/Contents/MacOS
-    cp $outputFolder/fpcalc $outputFolderMacOSApp/Lidarr.app/Contents/MacOS
-
-    echo "Adding sqlite dylibs"
-    cp $sourceFolder/Libraries/Sqlite/*.dylib $outputFolderMacOSApp/Lidarr.app/Contents/MacOS
-
-    echo "Removing Update Folder"
-    rm -r $outputFolderMacOSApp/Lidarr.app/Contents/MacOS/Lidarr.Update
-
-    ProgressEnd 'Creating macOS App Package'
 }
 
 PackageTests()
@@ -250,43 +159,6 @@ PackageTests()
     cp $sourceFolder/Libraries/Sqlite/*.dylib $testPackageFolder
 
     ProgressEnd 'Creating Test Package'
-}
-
-CleanupWindowsPackage()
-{
-    ProgressStart 'Cleaning Windows Package'
-
-    echo "Removing Lidarr.Mono"
-    rm -f $outputFolder/Lidarr.Mono.*
-
-    echo "Adding Lidarr.Windows to UpdatePackage"
-    cp $outputFolder/Lidarr.Windows.* $updateFolder
-
-    echo "Removing MacOS fpcalc"
-    rm $outputFolder/fpcalc
-
-    ProgressEnd 'Cleaning Windows Package'
-}
-
-PackageArtifacts()
-{
-    echo "Creating Artifact Directories"
-    
-    rm -rf $artifactsFolder
-    mkdir $artifactsFolder
-    
-    mkdir $artifactsFolderWindows
-    mkdir $artifactsFolderMacOS
-    mkdir $artifactsFolderLinux
-    mkdir $artifactsFolderWindows/Lidarr
-    mkdir $artifactsFolderMacOS/Lidarr
-    mkdir $artifactsFolderLinux/Lidarr
-    mkdir $artifactsFolderMacOSApp
-    
-    cp -r $outputFolder/* $artifactsFolderWindows/Lidarr
-    cp -r $outputFolderMacOSApp/* $artifactsFolderMacOSApp
-    cp -r $outputFolderMacOS/* $artifactsFolderMacOS/Lidarr
-    cp -r $outputFolderLinux/* $artifactsFolderLinux/Lidarr
 }
 
 # Use mono or .net depending on OS
@@ -339,14 +211,4 @@ fi
 if [ -z "$ONLY_BACKEND" ] && [ -z "$ONLY_PACKAGES" ];
 then
    RunGulp
-fi
-
-# Only package if we haven't set only-backend or only-frontend
-if [ -z "$ONLY_BACKEND" ] && [ -z "$ONLY_FRONTEND" ];
-then
-    PackageMono
-    PackageMacOS
-    PackageMacOSApp
-    CleanupWindowsPackage
-    PackageArtifacts
 fi

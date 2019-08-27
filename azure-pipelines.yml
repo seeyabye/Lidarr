@@ -23,7 +23,7 @@ trigger:
     include:
     - develop
     - dotnet-rebase
-    - dotnet-testing-fun
+    - dotnet-package-test
 
 pr:
 - develop
@@ -61,10 +61,10 @@ stages:
           version: '3.0.100-preview8-013656'
       - bash: ./build.sh --only-backend
         displayName: Build Lidarr Backend
-      - publish: $(outputFolder)
-        artifact: '$(osName)Backend'
-        displayName: Publish Backend
-        condition: and(succeeded(), eq(variables['osName'], 'Windows'))
+      # - publish: $(outputFolder)
+      #   artifact: '$(osName)Backend'
+      #   displayName: Publish Backend
+      #   condition: and(succeeded(), eq(variables['osName'], 'Windows'))
       - publish: $(testsFolder)
         artifact: '$(osName)Tests'
         displayName: Publish Test Package
@@ -111,34 +111,34 @@ stages:
     - Build_Backend
     - Build_Frontend
     jobs:
-    - job: Windows_Installer
-      displayName: Create Installer
-      pool:
-        vmImage: 'vs2017-win2016'
-      steps:
-      - checkout: self
-        fetchDepth: 1
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          buildType: 'current'
-          artifactName: WindowsBackend
-          targetPath: _output
-        displayName: Fetch Backend
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          buildType: 'current'
-          artifactName: WindowsFrontend
-          targetPath: _output
-        displayName: Fetch Frontend
-      - bash: ./build.sh --only-packages
-        displayName: Create Packages
-      - bash: |
-          ./setup/inno/ISCC.exe "./setup/lidarr.iss"
-          cp ./setup/output/Lidarr.*windows.exe ${BUILD_ARTIFACTSTAGINGDIRECTORY}/${WINDOWSINSTALLER}
-        displayName: Create Windows installer
-      - publish: $(Build.ArtifactStagingDirectory)
-        artifact: 'WindowsInstaller'
-        displayName: Publish Installer
+    # - job: Windows_Installer
+    #   displayName: Create Installer
+    #   pool:
+    #     vmImage: 'vs2017-win2016'
+    #   steps:
+    #   - checkout: self
+    #     fetchDepth: 1
+    #   - task: DownloadPipelineArtifact@2
+    #     inputs:
+    #       buildType: 'current'
+    #       artifactName: WindowsBackend
+    #       targetPath: _output
+    #     displayName: Fetch Backend
+    #   - task: DownloadPipelineArtifact@2
+    #     inputs:
+    #       buildType: 'current'
+    #       artifactName: WindowsFrontend
+    #       targetPath: _output
+    #     displayName: Fetch Frontend
+    #   - bash: ./build.sh --only-packages
+    #     displayName: Create Packages
+    #   - bash: |
+    #       ./setup/inno/ISCC.exe "./setup/lidarr.iss"
+    #       cp ./setup/output/Lidarr.*windows.exe ${BUILD_ARTIFACTSTAGINGDIRECTORY}/${WINDOWSINSTALLER}
+    #     displayName: Create Windows installer
+    #   - publish: $(Build.ArtifactStagingDirectory)
+    #     artifact: 'WindowsInstaller'
+    #     displayName: Publish Installer
       
     - job: Other_Packages
       displayName: Create Standard Packages
@@ -148,42 +148,42 @@ stages:
       - bash: sudo apt install dos2unix
       - checkout: self
         fetchDepth: 1
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          buildType: 'current'
-          artifactName: WindowsBackend
-          targetPath: _output
-        displayName: Fetch Backend
+      # - task: DownloadPipelineArtifact@2
+      #   inputs:
+      #     buildType: 'current'
+      #     artifactName: WindowsBackend
+      #     targetPath: _output
+      #   displayName: Fetch Backend
       - task: DownloadPipelineArtifact@2
         inputs:
           buildType: 'current'
           artifactName: WindowsFrontend
           targetPath: _output
         displayName: Fetch Frontend
-      - bash: ./build.sh --only-packages
+      - bash: ./package.sh
         displayName: Create Packages
       - bash: |
           chmod a+x $(artifactsFolder)/macos/Lidarr/fpcalc
           chmod a+x $(artifactsFolder)/macos/Lidarr/Lidarr
-          chmod a+x $(artifactsFolder)/macos-app/Lidarr.app/Contents/MacOS/fpcalc
-          chmod a+x $(artifactsFolder)/macos-app/Lidarr.app/Contents/MacOS/Lidarr
+          # chmod a+x $(artifactsFolder)/macos-app/Lidarr.app/Contents/MacOS/fpcalc
+          # chmod a+x $(artifactsFolder)/macos-app/Lidarr.app/Contents/MacOS/Lidarr
         displayName: Set Mac executable bits
       - task: ArchiveFiles@2
-        displayName: Create Windows zip
+        displayName: Create Windows x64 zip
         inputs:
           archiveFile: '$(Build.ArtifactStagingDirectory)/$(windowsZip)'
           archiveType: 'zip'
           includeRootFolder: false
           rootFolderOrFile: $(artifactsFolder)/windows
+      # - task: ArchiveFiles@2
+      #   displayName: Create MacOS app
+      #   inputs:
+      #     archiveFile: '$(Build.ArtifactStagingDirectory)/$(macOsApp)'
+      #     archiveType: 'zip'
+      #     includeRootFolder: false
+      #     rootFolderOrFile: $(artifactsFolder)/macos-app
       - task: ArchiveFiles@2
-        displayName: Create MacOS app
-        inputs:
-          archiveFile: '$(Build.ArtifactStagingDirectory)/$(macOsApp)'
-          archiveType: 'zip'
-          includeRootFolder: false
-          rootFolderOrFile: $(artifactsFolder)/macos-app
-      - task: ArchiveFiles@2
-        displayName: Create MacOS tar
+        displayName: Create MacOS x64 tar
         inputs:
           archiveFile: '$(Build.ArtifactStagingDirectory)/$(macOsTar)'
           archiveType: 'tar'
@@ -191,7 +191,7 @@ stages:
           includeRootFolder: false
           rootFolderOrFile: $(artifactsFolder)/macos
       - task: ArchiveFiles@2
-        displayName: Create Linux tar
+        displayName: Create Linux x64 tar
         inputs:
           archiveFile: '$(Build.ArtifactStagingDirectory)/$(linuxTar)'
           archiveType: 'tar'
