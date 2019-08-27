@@ -18,7 +18,6 @@ artifactsFolderWindows=$artifactsFolder/windows
 artifactsFolderLinux=$artifactsFolder/linux
 artifactsFolderMacOS=$artifactsFolder/macos
 
-nuget='tools/nuget/nuget.exe';
 vswhere='tools/vswhere/vswhere.exe';
 
 CheckExitCode()

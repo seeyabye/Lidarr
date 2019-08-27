@@ -147,6 +147,7 @@ stages:
       steps:
       - bash: sudo apt install dos2unix
       - checkout: self
+        submodules: true
         fetchDepth: 1
       # - task: DownloadPipelineArtifact@2
       #   inputs:
@@ -160,7 +161,7 @@ stages:
           artifactName: WindowsFrontend
           targetPath: _output
         displayName: Fetch Frontend
-      - bash: ./package.sh
+      - bash: ./package-artifacts.sh
         displayName: Create Packages
       - bash: |
           chmod a+x $(artifactsFolder)/macos/Lidarr/fpcalc
